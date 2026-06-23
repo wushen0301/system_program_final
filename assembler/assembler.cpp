@@ -99,9 +99,22 @@ void Assembler::printPass2()
         cout << dec <<idx++ << " " << "L" << toHex(line.loc, 4) << " ";
 
 		//no object code
-        if (line.objectCode.empty())
+        /*if (line.objectCode.empty())
         {
             cout << "null\n";
+            continue;
+        }*/
+
+        //word
+        if (line.format == "WORD")
+        {
+            cout << "WORD, obj=" << line.objectCode << "\n";
+            continue;
+        }
+        //byte
+        else if (line.format == "BYTE")
+        {
+            cout << "BYTE, obj=" << line.objectCode<< "\n";
             continue;
         }
 

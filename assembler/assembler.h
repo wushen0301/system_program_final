@@ -71,6 +71,7 @@ protected:
     std::vector<std::string> modificationRecords;
     std::string headerRecord;
     std::string endRecord;
+    std::string programName;
 };
 
 #endif

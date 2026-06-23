@@ -61,6 +61,8 @@ void Assembler::pass1()
         // START
         if (line.opcode == "START")
         {
+            programName = line.label;
+
             if (!line.operand.empty())
             {
                 startAddress = stoi(line.operand, nullptr, 16);

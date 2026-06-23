@@ -16,7 +16,7 @@ int main()
 
     assembler.generateObjectProgram();
     //assembler.printObjectProgram();
-    //assembler.writeObjectFile("output.obj");
+    assembler.writeObjectFile("output.obj");
 
     assembler.printSymtab();
     cout << endl;

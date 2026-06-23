@@ -36,9 +36,65 @@ void Assembler::pass2()
 
         it = OPTAB.find(opcodeStr);
 
-        // START / END / BYTE / WORD / RESW / RESB 後面做
         if (it == OPTAB.end())
+        {
+            // WORD
+            if (line.opcode == "WORD")
+            {
+                int value = stoi(line.operand);
+
+                line.format = "WORD";
+                line.objectCode = toHex(value, 6);
+
+                continue;
+            }
+
+            // BYTE
+            else if (line.opcode == "BYTE")
+            {
+                line.format = "BYTE";
+
+                string obj;
+
+                if (line.operand[0] == 'X')
+                {
+                    obj = line.operand.substr(
+                        2,
+                        line.operand.size() - 3
+                    );
+                }
+                else if (line.operand[0] == 'C')
+                {
+                    string chars =
+                        line.operand.substr(
+                            2,
+                            line.operand.size() - 3
+                        );
+
+                    for (char c : chars)
+                    {
+                        obj += toHex((unsigned char)c, 2);
+                    }
+                }
+
+                line.objectCode = obj;
+
+                continue;
+            }
+
+            // RESW / RESB
+            else if (
+                line.opcode == "RESW" ||
+                line.opcode == "RESB")
+            {
+                line.format = line.opcode;
+                line.objectCode = "";
+
+                continue;
+            }
+
             continue;
+        }
 
         int format = it->second.format;
         int opcode = it->second.opcode;
@@ -51,6 +107,8 @@ void Assembler::pass2()
                 (3 << 16);
 
             line.objectCode = toHex(obj, 6);
+
+            line.format = "format3";
 
             line.mode = "Simple";
             line.addrModeName = "pc-relative";
@@ -94,20 +152,58 @@ void Assembler::pass2()
         //format 4
         else if (format == 4)
         {
-            line.mode = "Simple";
-            line.addrModeName = "absolute";
+            string operand = line.operand;
+
+            bool n = true, i = true, x = false, b = false, p = false, e = true;
+
+            // Immediate
+            if (!operand.empty() && operand[0] == '#')
+            {
+                n = false;
+                i = true;
+
+                line.mode = "Immediate";
+
+                operand = operand.substr(1);
+            }
+
+            // Indirect
+            else if (!operand.empty() && operand[0] == '@')
+            {
+                n = true;
+                i = false;
+
+                line.mode = "Indirect";
+
+                operand = operand.substr(1);
+            }
+
+            else
+            {
+                line.mode = "Simple";
+            }
+
+            // Indexed
+            if (operand.find(",X") != string::npos)
+            {
+                x = true;
+
+                operand = operand.substr(0, operand.find(",X"));
+            }
 
             int addr = 0;
 
-            string operand = line.operand;
-
-            if (operand.find(",X") != string::npos)
-                operand = operand.substr(0, operand.find(",X"));
-
-            if (symtab.count(operand))
+            // immediate constant
+            if (!operand.empty() && isdigit(operand[0]))
+            {
+                addr = stoi(operand);
+            }
+            else if (symtab.count(operand))
+            {
                 addr = symtab[operand].value;
+            }
 
-            int n = 1, i = 1, x = 0, b = 0, p = 0, e = 1;
+            line.addrModeName = "absolute";
 
             int nixbpe =
                 (n << 5) |
@@ -117,7 +213,13 @@ void Assembler::pass2()
                 (p << 1) |
                 e;
 
-            line.nixbpe = "110001";
+            line.nixbpe =
+                to_string(n) +
+                to_string(i) +
+                to_string(x) +
+                to_string(b) +
+                to_string(p) +
+                to_string(e);
 
             int obj =
                 (opcode << 24) |
@@ -135,12 +237,19 @@ void Assembler::pass2()
         bool n = true, i = true, x = false, b = false, p = true, e = false;
 
         // addressing mode
+        bool immediateConstant = false;
+
         if (!operand.empty() && operand[0] == '#')
         {
             n = false;
             i = true;
             line.mode = "Immediate";
             operand = operand.substr(1);
+
+            if (!operand.empty() && isdigit(operand[0]))
+            {
+                immediateConstant = true;
+            }
         }
         else if (!operand.empty() && operand[0] == '@')
         {
@@ -170,15 +279,49 @@ void Assembler::pass2()
         // get address
         int addr = 0;
 
-        if (!operand.empty() && isdigit(operand[0]))
+        if (immediateConstant)
         {
             addr = stoi(operand);
-            p = false;
         }
         else
         {
             if (symtab.count(operand))
                 addr = symtab[operand].value;
+        }
+
+        //處理立即值的特例
+        if (immediateConstant)
+        {
+            b = 0;
+            p = 0;
+
+            int xbpe =
+                (n << 5) |
+                (i << 4) |
+                (x << 3) |
+                (b << 2) |
+                (p << 1) |
+                e;
+
+            line.nixbpe =
+                to_string(n) +
+                to_string(i) +
+                to_string(x) +
+                to_string(b) +
+                to_string(p) +
+                to_string(e);
+
+            line.addrModeName = "immediate";
+
+            int obj =
+                (opcode << 16) |
+                (xbpe << 12) |
+                (addr & 0xFFF);
+
+            line.objectCode =
+                toHex(obj, 6);
+
+            continue;
         }
 
         // PC-relative

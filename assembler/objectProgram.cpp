@@ -9,7 +9,8 @@ using namespace std;
 void Assembler::generateObjectProgram()
 {
     // H Record
-    string programName = "NONAME";
+    if (programName == "")
+        programName = "NONAME";
 
     if (!sourceLines.empty())
     {
