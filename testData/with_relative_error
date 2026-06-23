@@ -1,0 +1,47 @@
+.This is a test program with relative error
+COPY        START       1000
+FIRST       STL         RETADR
+CLOOP       +JSUB       RDREC
+            LDA         LENGTH
+            COMP        #0
+            JEQ         ENDFIL
+            +JSUB       WRREC
+            J           CLOOP
+ENDFIL      LDA         EOFSTR
+            STA         BUFFER
+            +LDT        LENGTH
+            RSUB        
+EOFSTR      BYTE        X'454F46'
+RETADR      RESW        1
+LENGTH      WORD        1024
+BUFFER      RESB        512
+
+FAR1        RESW        5000
+FAR2        RESW        5000
+FAR3        RESW        5000
+
+RDREC       CLEAR       X
+            CLEAR       A
+            CLEAR       S
+            +LDT        LENGTH
+            TD          INPUT
+            JEQ         RDREC
+            RD          INPUT
+            COMPR       A,S
+            JLT         RDREC
+
+WRREC       CLEAR       X
+            +LDT        LENGTH
+            TD          OUTPUT
+            JEQ         WRREC
+            WD          OUTPUT
+            RSUB
+
+            BASE        LENGTH
+
+INPUT       BYTE        X'F1'
+OUTPUT      BYTE        X'05'
+
+MAXLEN      EQU         LENGTH-RETADR
+ALPHA       EQU         MAXLEN+5
+            COMP        FAR1
