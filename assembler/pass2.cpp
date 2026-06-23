@@ -345,6 +345,11 @@ void Assembler::pass2()
                 std::cout << "[ERROR] No BASE set\n";
             }
 
+            if (disp < 0 || disp > 4095)
+            {
+                cout << "[ERROR] Cannot resolve with PC or BASE at line " << dec << line.lineNumber << endl;
+            }
+
             disp = addr - baseRegister;
 
             line.addrModeName = "base-relative";
